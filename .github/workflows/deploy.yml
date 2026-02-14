@@ -77,8 +77,19 @@ jobs:
           EOF
           
           rm -f private_key.pem
-
+  
       - name: Verify deployment
         run: |
-          sleep 30
-          curl -f http://${{ secrets.EC2_HOST }}/health || exit 1
+          sleep 10
+
+          for i in {1..10}; do
+            if curl -f http://$EC2_HOST/health; then
+              echo "App is healthy!"
+              exit 0
+            fi
+              echo "Waiting for app to be ready..."
+              sleep 5
+          done
+
+          echo "App failed health check"
+          exit 1
