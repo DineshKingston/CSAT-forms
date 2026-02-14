@@ -6,8 +6,7 @@ from app.database import engine, Base
 from app.models import *  # Import all models
 from sqlalchemy import text
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database table
 import logging
 
 # Configure logging
