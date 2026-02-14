@@ -80,5 +80,5 @@ jobs:
 
       - name: Verify deployment
         run: |
-          sleep 10
+          sleep 30
           curl -f http://${{ secrets.EC2_HOST }}/health || exit 1
