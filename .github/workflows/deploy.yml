@@ -56,16 +56,6 @@ jobs:
             export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
             export AWS_DEFAULT_REGION="${{ secrets.AWS_REGION }}"
             
-            # Ensure network exists
-            docker network create clientpulse_network 2>/dev/null || true
-            
-            # Connect database to network if not already connected
-            docker network connect clientpulse_network clientpulse_db 2>/dev/null || true
-            
-            # Get database IP on clientpulse_network
-            DB_IP=$(docker inspect clientpulse_db | grep -A 5 '"clientpulse_network"' | grep '"IPAddress"' | cut -d'"' -f4 | head -1)
-            echo "Database IP: $DB_IP"
-            
             # Login to ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
@@ -73,7 +63,8 @@ jobs:
             docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             # Stop and remove old container
-            docker rm -f clientpulse_app || true
+            docker stop clientpulse_app || true
+            docker rm clientpulse_app || true
             
             # Run new container
             docker run -d \
@@ -81,7 +72,7 @@ jobs:
               --restart always \
               --network clientpulse_network \
               -p 8000:8000 \
-              -e DATABASE_URL="mysql+pymysql://root:rootpassword@${DB_IP}:3306/clientpulse" \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
               -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
@@ -89,25 +80,33 @@ jobs:
               -e AWS_S3_BUCKET_NAME="${{ secrets.AWS_S3_BUCKET_NAME }}" \
               ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
             
-            # Wait for health check
-            echo "Waiting for container to be healthy..."
-            for i in {1..30}; do
+            # Wait for container to be healthy (internal check)
+            echo "Waiting for application to start..."
+            sleep 5
+            
+            for i in {1..20}; do
               if docker exec clientpulse_app curl -f http://localhost:8000/health 2>/dev/null; then
-                echo "✓ Container is healthy!"
-                echo "✓ Deployment successful!"
-                exit 0
+                echo "✓ Application is healthy!"
+                break
               fi
               
-              if [ $i -eq 30 ]; then
-                echo "✗ Health check failed. Logs:"
-                docker logs clientpulse_app --tail 50
+              if [ $i -eq 20 ]; then
+                echo "✗ Health check failed after 20 attempts"
+                echo "Container logs:"
+                docker logs clientpulse_app --tail 30
                 exit 1
               fi
               
+              echo "Health check attempt $i/20..."
               sleep 2
             done
             
-            docker ps | grep clientpulse
+            # Show deployment status
+            echo ""
+            echo "Deployment successful!"
+            docker ps | grep clientpulse_app
+            
+            # Clean up old images
             docker image prune -af
           EOF
           
@@ -115,5 +114,9 @@ jobs:
           
           echo ""
           echo "=========================================="
-          echo "✓ Deployment completed!"
-          echo "==========================================" 
+          echo "✓ Deployment completed successfully!"
+          echo "=========================================="
+          echo "Application URL: http://${{ secrets.EC2_HOST }}:8000"
+          echo "Health endpoint: http://${{ secrets.EC2_HOST }}:8000/health"
+          echo ""
+          echo "Note: Make sure port 8000 is open in Security Group to access from browser"
