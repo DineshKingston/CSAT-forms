@@ -18,8 +18,8 @@ Production-ready **Customer Satisfaction (CSAT)** backend system for collecting 
 
 
 ### Admin Dashboard (JWT Protected)
-- 🔐 Secure login with JWT authentication
-- 📊 Analytics reports:
+- Secure login with JWT authentication
+- Analytics reports:
   - Total feedback count
   - Overall average rating
   - Average ratings (30, 60, 90 days)
