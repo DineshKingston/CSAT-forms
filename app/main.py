@@ -4,6 +4,7 @@ from app.api import feedback_router, admin_router, analytics_router
 from app.config import settings
 from app.database import engine, Base
 from app.models import *  # Import all models
+from sqlalchemy import text
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -58,9 +59,6 @@ def health_check():
     Health check endpoint with database verification
     Returns 200 if healthy, 503 if unhealthy
     """
-    from fastapi import HTTPException
-    from sqlalchemy import text
-    
     health_status = {
         "status": "healthy",
         "database": "unknown",
@@ -69,10 +67,10 @@ def health_check():
     
     # Check database connection
     try:
-        db = next(get_db())
-        db.execute(text("SELECT 1"))
+        # Use engine directly instead of get_db() to avoid generator issues
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
         health_status["database"] = "connected"
-        db.close()
     except Exception as e:
         logger.error(f"Health check failed - Database error: {str(e)}")
         health_status["status"] = "unhealthy"
@@ -83,9 +81,13 @@ def health_check():
         )
     
     # Check S3 status
-    from app.core.s3 import s3_manager
-    if s3_manager.enabled:
-        health_status["s3"] = "enabled"
+    try:
+        from app.core.s3 import s3_manager
+        if s3_manager.enabled:
+            health_status["s3"] = "enabled"
+    except Exception:
+        # S3 check is optional, don't fail health check if it errors
+        health_status["s3"] = "not configured"
     
     return health_status
 
