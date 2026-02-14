@@ -11,10 +11,11 @@ Production-ready **Customer Satisfaction (CSAT)** backend system for collecting 
 ## 🚀 Features
 
 ### Public Feedback API (No Authentication)
-- ✅ Submit feedback with Name, Email, Rating (1-5), Description
-- ✅ Optional screenshot upload to AWS S3
-- ✅ Automatic client IP capture
-- ✅ Timestamp auto-generation
+- Submit feedback with Name, Email, Rating (1-5), Description
+- Optional screenshot upload to AWS S3
+- Automatic client IP capture
+- Timestamp auto-generation
+
 
 ### Admin Dashboard (JWT Protected)
 - 🔐 Secure login with JWT authentication
