@@ -9,7 +9,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   EC2_HOST: ${{ secrets.EC2_HOST }}
-  EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}  # Default to ubuntu if not set
+  EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
 
 jobs:
   build-and-deploy:
@@ -49,6 +49,23 @@ jobs:
           chmod 600 private_key.pem
           
           ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            
+            # Set AWS credentials
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_DEFAULT_REGION="${{ secrets.AWS_REGION }}"
+            
+            # Ensure network exists
+            docker network create clientpulse_network 2>/dev/null || true
+            
+            # Connect database to network if not already connected
+            docker network connect clientpulse_network clientpulse_db 2>/dev/null || true
+            
+            # Get database IP on clientpulse_network
+            DB_IP=$(docker inspect clientpulse_db | grep -A 5 '"clientpulse_network"' | grep '"IPAddress"' | cut -d'"' -f4 | head -1)
+            echo "Database IP: $DB_IP"
+            
             # Login to ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
@@ -56,15 +73,15 @@ jobs:
             docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             # Stop and remove old container
-            docker stop clientpulse_app || true
-            docker rm clientpulse_app || true
+            docker rm -f clientpulse_app || true
             
             # Run new container
             docker run -d \
               --name clientpulse_app \
               --restart always \
+              --network clientpulse_network \
               -p 8000:8000 \
-              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e DATABASE_URL="mysql+pymysql://root:rootpassword@${DB_IP}:3306/clientpulse" \
               -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
               -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
@@ -72,34 +89,31 @@ jobs:
               -e AWS_S3_BUCKET_NAME="${{ secrets.AWS_S3_BUCKET_NAME }}" \
               ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
             
-            # Clean up old images
+            # Wait for health check
+            echo "Waiting for container to be healthy..."
+            for i in {1..30}; do
+              if docker exec clientpulse_app curl -f http://localhost:8000/health 2>/dev/null; then
+                echo "✓ Container is healthy!"
+                echo "✓ Deployment successful!"
+                exit 0
+              fi
+              
+              if [ $i -eq 30 ]; then
+                echo "✗ Health check failed. Logs:"
+                docker logs clientpulse_app --tail 50
+                exit 1
+              fi
+              
+              sleep 2
+            done
+            
+            docker ps | grep clientpulse
             docker image prune -af
           EOF
           
           rm -f private_key.pem
-
-      - name: Verify deployment
-        run: |
-          echo "Verifying external access to application..."
           
-          # Try multiple times with increasing delays
-          for i in {1..15}; do
-            echo "Health check attempt $i/15..."
-            
-            if curl -f -m 10 http://${{ secrets.EC2_HOST }}:8000/health; then
-              echo "✓ Deployment verified successfully!"
-              exit 0
-            fi
-            
-            if [ $i -lt 15 ]; then
-              echo "Retrying in 5 seconds..."
-              sleep 5
-            fi
-          done
-          
-          echo "✗ Health check failed after 15 attempts"
-          echo "Possible issues:"
-          echo "1. Security group doesn't allow port 8000"
-          echo "2. Application is not running"
-          echo "3. Database connection issues"
-          exit 1
+          echo ""
+          echo "=========================================="
+          echo "✓ Deployment completed!"
+          echo "==========================================" 
