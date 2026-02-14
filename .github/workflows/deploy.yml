@@ -48,7 +48,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           
-          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << EOF
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
             # Login to ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
@@ -80,5 +80,26 @@ jobs:
 
       - name: Verify deployment
         run: |
-          sleep 10
-          curl -f http://${{ secrets.EC2_HOST }}/health || exit 1
+          echo "Verifying external access to application..."
+          
+          # Try multiple times with increasing delays
+          for i in {1..15}; do
+            echo "Health check attempt $i/15..."
+            
+            if curl -f -m 10 http://${{ secrets.EC2_HOST }}:8000/health; then
+              echo "✓ Deployment verified successfully!"
+              exit 0
+            fi
+            
+            if [ $i -lt 15 ]; then
+              echo "Retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          
+          echo "✗ Health check failed after 15 attempts"
+          echo "Possible issues:"
+          echo "1. Security group doesn't allow port 8000"
+          echo "2. Application is not running"
+          echo "3. Database connection issues"
+          exit 1
