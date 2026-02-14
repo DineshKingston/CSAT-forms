@@ -23,23 +23,26 @@ services:
 
   # FastAPI Application  
   app:
-  image: 258924246214.dkr.ecr.ap-south-1.amazonaws.com/clientpulse:latest
-  container_name: clientpulse_app
-  restart: always
-  ports:
-    - "8000:8000"
-  environment:
-    - DATABASE_URL=mysql+pymysql://root:${DB_ROOT_PASSWORD:-rootpassword}@db:3306/${DB_NAME:-clientpulse}
-    - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-    - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-    - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    - AWS_REGION=ap-south-1
-    - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
-  depends_on:
-    db:
-      condition: service_healthy
-  networks:
-    - clientpulse_network
+<<<<<<< HEAD
+=======
+    image: 258924246214.dkr.ecr.ap-south-1.amazonaws.com/clientpulse
+    container_name: clientpulse_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:${DB_ROOT_PASSWORD:-rootpassword}@db:3306/${DB_NAME:-clientpulse}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - clientpulse_network
+>>>>>>> 68aaf1f (Fix production docker-compose)
 
   # Nginx Reverse Proxy
   nginx:
