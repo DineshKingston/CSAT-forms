@@ -70,6 +70,7 @@ jobs:
           EOF
 
           rm -f private_key.pem
+          exit 1
 
       - name: Verify deployment
         run: |
