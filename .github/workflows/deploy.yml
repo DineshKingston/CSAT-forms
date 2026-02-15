@@ -49,28 +49,29 @@ jobs:
           chmod 600 private_key.pem
 
           ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << EOF
-            cd ~/clientpulse
+            cd ~/CSAT-forms
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
             docker login --username AWS --password-stdin $ECR_REGISTRY
 
-            # Pull latest images
+            # Pull latest images defined in docker-compose
             docker-compose pull
 
-            # Clean restart
+            # Stop and remove old containers safely
             docker-compose down --remove-orphans
 
-            # Remove leftover container if exists
+            # Remove any leftover app container (safety cleanup)
             docker rm -f clientpulse_app 2>/dev/null || true
 
+            # Start fresh containers
             docker-compose up -d
 
+            # Cleanup unused images
             docker image prune -af
           EOF
 
           rm -f private_key.pem
-          exit 1
 
       - name: Verify deployment
         run: |
@@ -84,6 +85,6 @@ jobs:
             echo "Waiting for app..."
             sleep 10
           done  
-
+          
           exti 1
 
