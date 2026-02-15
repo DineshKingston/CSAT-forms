@@ -80,16 +80,16 @@ jobs:
   
       - name: Verify deployment
         run: |
-          sleep 10
+          sleep 60
 
           for i in {1..10}; do
-            if curl -f http://$EC2_HOST/health; then
-              echo "App is healthy!"
+            if curl -f http://${{ secrets.EC2_HOST }}/health; then
+              echo "App is ready!"
               exit 0
             fi
-              echo "Waiting for app to be ready..."
-              sleep 5
-          done
+            echo "Waiting for app..."
+            sleep 10
+          done  
+          
+          exti 1
 
-          echo "App failed health check"
-          exit 1
