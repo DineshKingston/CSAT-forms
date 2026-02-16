@@ -19,7 +19,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Full clone to ensure all files are present
+          fetch-depth: 0 
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
