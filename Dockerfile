@@ -10,24 +10,19 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.8.5
+
+# Copy only dependency files first (for Docker layer caching)
+COPY pyproject.toml poetry.lock ./
+
+# Configure Poetry to not create virtual environment (unnecessary in Docker)
+# Install only production dependencies
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-dev --no-interaction --no-ansi
+
 # Copy application code
 COPY ./app ./app
-
-# Install Python dependencies directly
-RUN pip install --no-cache-dir \
-    fastapi==0.109.0 \
-    uvicorn[standard]==0.27.0 \
-    sqlalchemy==2.0.25 \
-    pymysql==1.1.0 \
-    pydantic==2.5.3 \
-    pydantic-settings==2.1.0 \
-    python-jose[cryptography]==3.3.0 \
-    passlib[bcrypt]==1.7.4 \
-    bcrypt==4.1.2 \
-    boto3==1.34.34 \
-    python-multipart==0.0.6 \
-    python-dotenv==1.0.0\
-    email-validator
 
 # Expose port
 EXPOSE 8000
