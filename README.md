@@ -1,296 +1,196 @@
-# ClientPulse - CSAT Feedback Collection System
+# ClientPulse Backend
 
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
-![AWS](https://img.shields.io/badge/AWS-S3%20%7C%20ECR%20%7C%20EC2-FF9900?logo=amazon-aws)
+Customer Satisfaction (CSAT) Feedback Collection and Analytics System - Backend API
 
-Production-ready **Customer Satisfaction (CSAT)** backend system for collecting feedback, storing screenshots in AWS S3, and providing analytics with JWT-protected admin dashboard.
+## 🚀 Tech Stack
 
-## 🚀 Features
+- **Framework**: FastAPI (Python 3.11)
+- **Database**: MySQL 8.0
+- **ORM**: SQLAlchemy
+- **Authentication**: JWT (JSON Web Tokens)
+- **Storage**: AWS S3
+- **Deployment**: Docker + AWS ECR + EC2
+- **CI/CD**: GitHub Actions
+- **Web Server**: Nginx (reverse proxy)
 
-### Public Feedback API (No Authentication)
-- Submit feedback with Name, Email, Rating (1-5), Description
-- Optional screenshot upload to AWS S3
-- Automatic client IP capture
-- Timestamp auto-generation
+## 📋 Features
 
+- **Public Feedback Submission** - Anyone can submit CSAT feedback with optional screenshots
+- **Admin Dashboard** - Secure analytics and reporting for administrators
+- **JWT Authentication** - Secure token-based authentication
+- **AWS S3 Integration** - Cloud storage for uploaded screenshots
+- **Analytics API** - Comprehensive feedback metrics (30/60/90-day averages, rating distribution)
+- **Export Reports** - Download feedback data as CSV or Excel
+- **Health Monitoring** - `/health` endpoint for system status
 
-### Admin Dashboard (JWT Protected)
-- Secure login with JWT authentication
-- Analytics reports:
-  - Total feedback count
-  - Overall average rating
-  - Average ratings (30, 60, 90 days)
-  - Rating distribution (1-5 stars)
-- 📥 Download reports (CSV/JSON)
+## 🛠️ Local Development Setup
 
-### Infrastructure
-- 🐳 Fully Dockerized (FastAPI + MySQL + Nginx)
-- ☁️ AWS S3 for screenshot storage
-- 🔄 CI/CD with GitHub Actions → AWS ECR → EC2
-- 🌐 Nginx reverse proxy with HTTPS support
-- 🔒 Production-ready security (bcrypt + JWT)
-
-## 📋 Prerequisites
+### Prerequisites
 
 - Python 3.11+
-- Poetry
+- Poetry (dependency management)
 - MySQL 8.0
-- Docker & Docker Compose
-- AWS Account (S3, ECR, EC2)
-- Git
+- AWS Account (for S3)
 
-## 🛠️ Quick Start
+### Installation
 
-### 1. Clone Repository
+1. **Clone the repository**
+```bash
+git clone https://github.com/DineshKingston/CSAT-forms.git
+cd CSAT-forms
+```
 
-\`\`\`bash
-git clone https://github.com/yourusername/clientpulse.git
-cd clientpulse
-\`\`\`
-
-### 2. Install Dependencies
-
-\`\`\`bash
-# Install Poetry (if not installed)
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Install dependencies
+2. **Install dependencies**
+```bash
 poetry install
+```
 
-# Activate virtual environment
-poetry shell
-\`\`\`
-
-### 3. Configure Environment
-
-\`\`\`bash
-# Copy environment template
+3. **Set up environment variables**
+```bash
 cp .env.example .env
-
-# Edit .env with your credentials
-nano .env
-\`\`\`
+# Edit .env with your configuration
+```
 
 Required environment variables:
-\`\`\`env
-DATABASE_URL=mysql+pymysql://root:password@localhost:3306/clientpulse
-JWT_SECRET_KEY=your-secret-key-change-this
-AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
-AWS_S3_BUCKET_NAME=your-bucket-name
-\`\`\`
+```bash
+# Database
+DB_ROOT_PASSWORD=your_db_password
+DB_NAME=clientpulse
 
-### 4. Set Up Database
+# JWT
+JWT_SECRET_KEY=your-secret-key-here
 
-\`\`\`bash
-# Start MySQL (if using Docker)
+# AWS S3
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_S3_BUCKET_NAME=your_bucket_name
+AWS_REGION=ap-south-1
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://clientpulse.duckdns.org
+```
+
+4. **Run MySQL Database**
+```bash
 docker-compose up -d db
+```
 
-# Or use system MySQL
-sudo service mysql start
+5. **Run the application**
+```bash
+poetry run uvicorn app.main:app --reload
+```
 
-# Create database
-mysql -u root -p -e "CREATE DATABASE clientpulse;"
-\`\`\`
+The API will be available at `http://localhost:8000`
 
-### 5. Run Application
+## 📚 API Documentation
 
-\`\`\`bash
-# Development mode
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+Once running, access interactive API docs:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-# Or with Docker Compose
-docker-compose up --build
-\`\`\`
+### Key Endpoints
 
-Visit:
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+#### Public Endpoints
+- `POST /api/feedback/` - Submit feedback (with optional screenshot)
 
-## 📡 API Endpoints
+#### Admin Endpoints (JWT Required)
+- `POST /api/admin/register` - Create admin account
+- `POST /api/admin/login` - Login and get JWT token
+- `GET /api/admin/me` - Get current admin info
+- `GET /api/analytics/reports` - Get analytics data
+- `GET /api/analytics/download?format=csv|excel` - Download report
 
-### Public Endpoints
-
-#### Submit Feedback
-\`\`\`http
-POST /api/feedback/
-Content-Type: multipart/form-data
-
-name: John Doe
-email: john@example.com
-rating: 5
-description: Great service!
-screenshot: [file]
-\`\`\`
-
-### Admin Endpoints
-
-#### Register Admin
-\`\`\`http
-POST /api/admin/register
-Content-Type: application/json
-
-{
-  "username": "admin",
-  "email": "admin@example.com",
-  "password": "securepassword"
-}
-\`\`\`
-
-#### Login
-\`\`\`http
-POST /api/admin/login
-Content-Type: application/json
-
-{
-  "username": "admin",
-  "password": "securepassword"
-}
-
-Response: { "access_token": "...", "token_type": "bearer" }
-\`\`\`
-
-#### Get Analytics (Protected)
-\`\`\`http
-GET /api/analytics/reports
-Authorization: Bearer <token>
-\`\`\`
-
-#### Download Report (Protected)
-\`\`\`http
-GET /api/analytics/download?format=csv
-Authorization: Bearer <token>
-\`\`\`
+#### System
+- `GET /health` - Health check endpoint
 
 ## 🐳 Docker Deployment
 
-### Local Development
-\`\`\`bash
-docker-compose up --build
-\`\`\`
+### Build Docker Image
 
-### Production (EC2)
-\`\`\`bash
-# Build and push to ECR
-docker build -t clientpulse .
-docker tag clientpulse:latest <ecr-repo-url>:latest
-docker push <ecr-repo-url>:latest
+```bash
+docker build -t clientpulse-backend .
+```
 
-# On EC2 instance
-docker pull <ecr-repo-url>:latest
-docker run -d -p 8000:8000 --env-file .env clientpulse
-\`\`\`
+### Run with Docker Compose
 
-## 🔐 AWS Setup
+```bash
+docker-compose up -d
+```
 
-### S3 Bucket
-1. Create bucket: `clientpulse-screenshots`
-2. Configure CORS and public read access (or use presigned URLs)
-3. Add bucket policy for uploads
+Services:
+- **app**: FastAPI backend (port 8000)
+- **db**: MySQL database (port 3306)
+- **nginx**: Reverse proxy (ports 80, 443)
 
-### ECR Repository
-\`\`\`bash
-aws ecr create-repository --repository-name clientpulse --region us-east-1
-\`\`\`
+## 🚀 Production Deployment
 
-### EC2 Instance
-- **Type**: t2.micro (free tier eligible)
-- **OS**: Ubuntu 22.04
-- **Security Group**: Allow ports 22, 80, 443, 8000
-- **Install**: Docker, AWS CLI
+### AWS ECR + EC2
 
-## ⚙️ GitHub Secrets
+The project includes automated CI/CD via GitHub Actions:
 
-Configure these in **Settings → Secrets and variables → Actions**:
+1. **Push to main branch** → Triggers deployment
+2. **Build Docker image** → Uses Poetry for dependencies
+3. **Push to ECR** → Stores image in AWS registry
+4. **Deploy to EC2** → Pulls and runs latest image
 
-\`\`\`
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_REGION
-ECR_REPOSITORY
-EC2_HOST
-EC2_SSH_KEY
-DATABASE_URL
-JWT_SECRET_KEY
-AWS_S3_BUCKET_NAME
-\`\`\`
+### Manual Deployment
 
-## 🧪 Testing
+```bash
+# Build and tag
+docker build -t clientpulse-backend .
+docker tag clientpulse-backend:latest ecr repositroy
 
-\`\`\`bash
-# Run tests
-poetry run pytest
+# Push to ECR
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ecr rep
+docker push ecr repo latest
 
-# API testing with curl
-curl -X POST http://localhost:8000/api/feedback/ \
-  -F "name=Test User" \
-  -F "email=test@example.com" \
-  -F "rating=5" \
-  -F "description=Test feedback"
-\`\`\`
+# On EC2
+docker-compose pull
+docker-compose up -d
+```
 
-## 📦 Project Structure
+## 📁 Project Structure
 
-\`\`\`
+```
 clientpulse/
 ├── app/
-│   ├── api/              # API routes
-│   ├── core/             # Security & S3
-│   ├── models/           # SQLAlchemy models
+│   ├── api/              # API route handlers
+│   │   ├── admin.py      # Admin authentication
+│   │   ├── analytics.py  # Analytics endpoints
+│   │   └── feedback.py   # Feedback submission
+│   ├── core/             # Core utilities
+│   │   ├── s3.py         # AWS S3 integration
+│   │   ├── security.py   # JWT & password hashing
+│   │   └── dependencies.py # Auth dependencies
+│   ├── models/           # SQLAlchemy ORM models
+│   │   ├── admin.py      # Admin user model
+│   │   └── feedback.py   # Feedback model
 │   ├── schemas/          # Pydantic schemas
-│   ├── utils/            # Dependencies
-│   ├── config.py         # Settings
-│   ├── database.py       # DB connection
-│   └── main.py           # FastAPI app
+│   │   ├── admin.py      # Admin DTOs
+│   │   ├── analytics.py  # Analytics DTOs
+│   │   └── feedback.py   # Feedback DTOs
+│   ├── config.py         # Configuration management
+│   ├── database.py       # Database connection
+│   └── main.py          # FastAPI application
 ├── nginx/
-│   └── nginx.conf        # Nginx config
-├── .github/workflows/    # CI/CD
-├── Dockerfile
-├── docker-compose.yml
-├── pyproject.toml        # Poetry config
-└── .env.example
-\`\`\`
+│   └── conf.d/
+│       └── default.conf  # Nginx configuration
+├── .github/
+│   └── workflows/
+│       └── deploy.yml    # CI/CD pipeline
+├── docker-compose.yml    # Multi-container orchestration
+├── Dockerfile           # Docker image definition
+├── pyproject.toml       # Poetry dependencies
+└── poetry.lock          # Locked dependency versions
+```
 
-## 📊 Tech Stack
+## 🔐 Security
 
-- **Backend**: FastAPI, Uvicorn
-- **ORM**: SQLAlchemy
-- **Validation**: Pydantic
-- **Database**: MySQL 8.0
-- **Authentication**: JWT (python-jose)
-- **Password**: bcrypt (passlib)
-- **Cloud**: AWS S3, ECR, EC2
-- **DevOps**: Docker, GitHub Actions, Nginx
-- **Environment**: Poetry, Python 3.11
+- **JWT Tokens**: 24-hour expiration
+- **Password Hashing**: bcrypt with salt
+- **HTTPS**: TLS 1.2+ via Let's Encrypt
+- **CORS**: Configured origin whitelist
+- **SQL Injection**: Protected via SQLAlchemy ORM
+- **Secrets Management**: Environment variables + GitHub Secrets
 
-## 🔄 CI/CD Pipeline
 
-1. **Push to main** → Triggers GitHub Action
-2. **Build Docker image** → Tag with commit SHA
-3. **Push to ECR** → AWS Elastic Container Registry
-4. **Deploy to EC2** → Pull latest image & restart
-5. **Health check** → Verify deployment
-
-## 🌐 HTTPS Setup (Bonus)
-
-\`\`\`bash
-# On EC2 instance
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
-\`\`\`
-
-## 📝 License
-
-MIT License - feel free to use for learning and production!
-
-## 👨‍💻 Author
-
-**Dinesh Kingston**  
-Assignment Project - Placibo Training
-
----
-
-⭐ **Star this repo if you found it helpful!**
