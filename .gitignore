@@ -110,7 +110,7 @@ dmypy.json
 .pyre/
 
 # Poetry
-poetry.lock
+# poetry.lock should be committed for reproducible builds
 
 # IDEs
 .vscode/
