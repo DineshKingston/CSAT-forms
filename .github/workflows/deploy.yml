@@ -78,7 +78,7 @@ jobs:
           sleep 60
 
           for i in {1..10}; do
-            if curl -f http://${{ secrets.EC2_HOST }}/health; then
+            if curl -f https://clientpulse.duckdns.org/health; then
               echo "App is ready!"
               exit 0
             fi
