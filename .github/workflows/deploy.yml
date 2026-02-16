@@ -86,5 +86,5 @@ jobs:
             sleep 10
           done  
           
-          exti 1
+          exit 1
 
