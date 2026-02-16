@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Union
+from pydantic import field_validator
+import json
 
 
 class Settings(BaseSettings):
@@ -28,7 +30,21 @@ class Settings(BaseSettings):
     AWS_S3_BUCKET_NAME: str = ""  # Optional
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"]
+    
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                print(f"[CONFIG] Parsed CORS_ORIGINS from JSON: {parsed}")
+                return parsed
+            except json.JSONDecodeError:
+                print(f"[CONFIG] Failed to parse CORS JSON, splitting by comma: {v}")
+                return [origin.strip() for origin in v.split(',')]
+        print(f"[CONFIG] CORS_ORIGINS already a list: {v}")
+        return v
     
     class Config:
         env_file = ".env"
@@ -37,3 +53,4 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+print(f"[CONFIG] Final CORS_ORIGINS loaded: {settings.CORS_ORIGINS}")
