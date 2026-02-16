@@ -10,6 +10,7 @@ class AnalyticsReport(BaseModel):
     avg_rating_last_60_days: float
     avg_rating_last_90_days: float
     rating_distribution: Dict[str, int]  # {"1": 10, "2": 20, ...}
+    unique_ratings: int  # Number of different rating levels that have at least 1 response
 
 
 class DownloadFormat(BaseModel):

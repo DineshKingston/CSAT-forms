@@ -53,6 +53,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/frontend:/var/www/frontend:ro
     depends_on:
       - app
     networks:
