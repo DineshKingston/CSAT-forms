@@ -26,7 +26,7 @@ class FeedbackResponse(BaseModel):
     rating: int
     description: Optional[str]
     screenshot_url: Optional[str]
-    client_ip: Optional[str]
+    client_ip: str  # Automatically captured, always present
     created_at: datetime
     
     class Config:

@@ -14,7 +14,7 @@ class Feedback(Base):
     rating = Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=False)
     description = Column(Text, nullable=True)
     screenshot_url = Column(String(500), nullable=True)
-    client_ip = Column(String(45), nullable=True)  # IPv6 max length
+    client_ip = Column(String(45), nullable=False, default="unknown")  # IPv6 max length, automatically captured
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     def __repr__(self):
